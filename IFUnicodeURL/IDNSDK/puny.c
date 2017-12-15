@@ -13,7 +13,8 @@
 #include "xcode.h"
 #include "util.h"
 
-// Make the compiler happy
+/* Prototypes */
+
 int is_all_basic(DWORD input_length, const DWORD input[]);
 int punycode_encode( unsigned int input_length,
                     const DWORD input[],
@@ -91,7 +92,7 @@ static char encode_digit(DWORD d, int flag)
 int is_all_basic(DWORD input_length, const DWORD input[])
 {
   int j;
-  for(j = 0; j < input_length; j++) 
+  for(j = 0; j < (int)input_length; j++)
   {
     if (basic(input[j])) 
     {
@@ -195,10 +196,11 @@ int punycode_encode( unsigned int input_length,
       }
     }
 
-    ++delta, ++n;
+      ++delta;
+      ++n;
   }
 
-  *output_length = (int)out;
+  *output_length = (unsigned int) out;
   return XCODE_SUCCESS;
 }
 
@@ -281,7 +283,7 @@ int punycode_decode( unsigned int input_length,
     output[i++] = n;
   }
 
-  *output_length = (int)out;
+  *output_length = (unsigned int) out;
   return XCODE_SUCCESS;
 }
 
@@ -355,7 +357,7 @@ int Xcode_puny_encodeString( const DWORD *  pdwzInputString,
   if( is_all_basic(punycode_input_length, punycode_input) == 1 ) 
   {
     /* copy the input to output */
-    for (offset = 0; offset < punycode_input_length; offset++) 
+    for (offset = 0; offset < (int)punycode_input_length; offset++)
     {
 	    *(pzOutputString + offset) = (char)*(punycode_input + offset);
     }
@@ -391,7 +393,7 @@ int Xcode_puny_encodeString( const DWORD *  pdwzInputString,
 
   strncat( (char*)pzOutputString, ACE_PREFIX, strlen(ACE_PREFIX) );
 
-  for ( offset = 0; offset < encoded_string_length; offset++ ) 
+  for ( offset = 0; offset < (int)encoded_string_length; offset++ )
   {
     *(pzOutputString + output_offset++) = *(encoded_string + offset);
   }
@@ -490,7 +492,7 @@ int Xcode_puny_decodeString( const UCHAR8 *     pzInputString,
 
   output_offset = 0;
 
-  if (output_offset > *piOutputSize - punycode_output_length) 
+  if ((int)output_offset > *piOutputSize - (int)punycode_output_length)
   {
     return XCODE_BUFFER_OVERFLOW_ERROR;
   }

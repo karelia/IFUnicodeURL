@@ -27,7 +27,7 @@ extern "C"
 
 static int lookup_charmap( DWORD dwChar, const DWORD ** ppdwBlock )
 {
-  int high, low;
+  int ii = 0, high, low;
 
   /* { index: 0x00000041, len, c1->c4: 1, 0x00000061,0x00000000,0x00000000,0x00000000 }, */
 
@@ -40,7 +40,7 @@ static int lookup_charmap( DWORD dwChar, const DWORD ** ppdwBlock )
 
   while ( high - low > 1 )
   {
-    int ii = ( high + low ) / 2;
+    ii = ( high + low ) / 2;
 
     if ( dwChar <= g_charmapTable[ii].dwCodepoint )
     {
@@ -50,12 +50,11 @@ static int lookup_charmap( DWORD dwChar, const DWORD ** ppdwBlock )
     }
   }
 
-  if ( dwChar == g_charmapTable[high].dwCodepoint )
+  if ( high < CHARMAP_ENTRYCOUNT && dwChar == g_charmapTable[high].dwCodepoint )
   {
     *ppdwBlock = &g_charmapTable[high].dwzData[0];
     return g_charmapTable[high].length;
   }
-
   return -1;
 }
 
@@ -72,10 +71,19 @@ static int lookup_prohbited( DWORD dwCodepoint )
 {
   int ii;
 
-  for ( ii = 0; ii <= PROHIBIT_ENTRYCOUNT; ii++ )
+//	printf("check: %lu\n", dwCodepoint);
+	
+	if(dwCodepoint == 0) // hacky fix
+		return 0; // hack hack hack
+	
+  for ( ii = 0; ii < (int)PROHIBIT_ENTRYCOUNT; ii++ )
   {
     if ( dwCodepoint > g_prohibitTable[ii].high ) continue;
-    if ( dwCodepoint >= g_prohibitTable[ii].low && dwCodepoint <= g_prohibitTable[ii].high ) return 1;
+    if ( dwCodepoint >= g_prohibitTable[ii].low && dwCodepoint <= g_prohibitTable[ii].high ) 
+	{
+//		printf("BAD: %d -- %lu ---- [%lu %lu]\n", ii, dwCodepoint, g_prohibitTable[ii].low, g_prohibitTable[ii].high);
+		return 1;
+	}
   }
 
   return 0;
@@ -91,7 +99,7 @@ static int lookup_prohbited( DWORD dwCodepoint )
 
 static int lookup_bidi_randalcat( DWORD dwCodepoint )
 {
-  int high, low;
+  int ii = 0, high, low;
 
   if ( dwCodepoint == 0 ) return 0;
 
@@ -100,7 +108,7 @@ static int lookup_bidi_randalcat( DWORD dwCodepoint )
 
   while ( high - low > 1 )
   {
-    int ii = ( high + low ) / 2;
+    ii = ( high + low ) / 2;
 
     if ( dwCodepoint <= g_randalcatTable[ii] )
     {
@@ -110,7 +118,7 @@ static int lookup_bidi_randalcat( DWORD dwCodepoint )
     }
   }
 
-  if ( dwCodepoint == g_randalcatTable[high] )
+  if ( high < RANDALCAT_ENTRYCOUNT && dwCodepoint == g_randalcatTable[high] )
   {
     return 1;
   }
@@ -130,7 +138,7 @@ static int lookup_bidi_lcat( DWORD dwCodepoint )
 {
   int ii;
 
-  for ( ii = 0; ii <= LCAT_ENTRYCOUNT; ii++ )
+  for ( ii = 0; ii < (int)LCAT_ENTRYCOUNT; ii++ )
   {
     if ( dwCodepoint > g_lcatTable[ii].high ) continue;
     if ( dwCodepoint >= g_lcatTable[ii].low && dwCodepoint <= g_lcatTable[ii].high ) return 1;
@@ -151,7 +159,7 @@ static int lookup_bidi_lcat( DWORD dwCodepoint )
 
 static int lookup_decompose( DWORD dwChar, const DWORD ** pdwzChar )
 {
-  int high, low;
+  int ii = 0, high, low;
 
   if ( pdwzChar == 0 ) return 0;
 
@@ -162,7 +170,7 @@ static int lookup_decompose( DWORD dwChar, const DWORD ** pdwzChar )
 
   while ( high - low > 1 )
   {
-    int ii = ( high + low ) / 2;
+    ii = ( high + low ) / 2;
 
     if ( dwChar <= g_decomposeTable[ii].dwCodepoint )
     {
@@ -172,7 +180,7 @@ static int lookup_decompose( DWORD dwChar, const DWORD ** pdwzChar )
     }
   }
 
-  if ( dwChar == g_decomposeTable[high].dwCodepoint )
+  if ( high < DECOMPOSE_ENTRYCOUNT && dwChar == g_decomposeTable[high].dwCodepoint )
   {
     *pdwzChar = g_decomposeTable[high].dwzData;
     return g_decomposeTable[high].length;
@@ -193,7 +201,7 @@ static int lookup_decompose( DWORD dwChar, const DWORD ** pdwzChar )
 
 static int lookup_composite( QWORD qwPair, DWORD * dwCodepoint )
 {
-  int high, low;
+  int ii = 0, high, low;
 
   if ( dwCodepoint == 0 ) return 0;
 
@@ -202,7 +210,7 @@ static int lookup_composite( QWORD qwPair, DWORD * dwCodepoint )
 
   while ( high - low > 1 )
   {
-    int ii = ( high + low ) / 2;
+    ii = ( high + low ) / 2;
 
     if ( qwPair <= g_composeTable[ii].qwPair )
     {
@@ -212,7 +220,7 @@ static int lookup_composite( QWORD qwPair, DWORD * dwCodepoint )
     }
   }
 
-  if ( qwPair == g_composeTable[high].qwPair )
+  if ( high < COMPOSE_ENTRYCOUNT && qwPair == g_composeTable[high].qwPair )
   {
     *dwCodepoint = g_composeTable[high].dwCodepoint;
     return 1;
@@ -232,7 +240,7 @@ static int lookup_composite( QWORD qwPair, DWORD * dwCodepoint )
 
 static DWORD lookup_canonical( DWORD dwCodepoint )
 {
-  int high, low;
+  int ii = 0, high, low;
 
   if ( dwCodepoint == 0 ) return 0;
 
@@ -241,7 +249,7 @@ static DWORD lookup_canonical( DWORD dwCodepoint )
 
   while ( high - low > 1 )
   {
-    int ii = ( high + low ) / 2;
+    ii = ( high + low ) / 2;
 
     if ( dwCodepoint <= g_canonicalTable[ii].dwCodepoint )
     {
@@ -251,7 +259,7 @@ static DWORD lookup_canonical( DWORD dwCodepoint )
     }
   }
 
-  if ( dwCodepoint == g_canonicalTable[high].dwCodepoint )
+  if ( high < CANONICAL_ENTRYCOUNT && dwCodepoint == g_canonicalTable[high].dwCodepoint )
   {
     return g_canonicalTable[high].dwClass;
   }
@@ -270,14 +278,14 @@ static DWORD lookup_canonical( DWORD dwCodepoint )
 
 static int lookup_compatible( DWORD dwCodepoint )
 {
-  int high, low;
+  int ii = 0, high, low;
 
   low   = -1;
   high  = COMPATIBLE_ENTRYCOUNT;
 
   while ( high - low > 1 )
   {
-    int ii = ( high + low ) / 2;
+    ii = ( high + low ) / 2;
 
     if ( dwCodepoint <= g_compatibleTable[ii] )
     {
@@ -287,7 +295,7 @@ static int lookup_compatible( DWORD dwCodepoint )
     }
   }
 
-  if ( dwCodepoint == g_compatibleTable[high] )
+  if ( high < COMPATIBLE_ENTRYCOUNT && dwCodepoint == g_compatibleTable[high] )
   {
     return 1;
   }

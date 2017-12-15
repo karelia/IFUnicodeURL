@@ -22,15 +22,7 @@
 #include "xcode.h"
 #include "util.h"
 
-/* Hex definitions */
-
-#define ZERO                    0x00
-#define DOUBLE_F                0xFF
-#define DOUBLE_9                0x99
-#define NO_COMPRESSION_FLAG     0xD8
-#define HYPHEN                  0x002D
-
-/* Make the compiler happy */
+/* Prototypes */
 
 int Xcode_race_RaceCompress( const UTF16CHAR *  uncompressed,
                             const size_t       uncompressed_size,
@@ -40,16 +32,14 @@ int Xcode_race_RaceDecompress( const UCHAR8* compressed,
                               const size_t compressed_size,
                               UTF16CHAR* decompressed,
                               size_t* decompressed_size );
-UCHAR8 Xcode_enmap32_race(const UCHAR8 input);
-UCHAR8 Xcode_demap32_race(const UCHAR8 input);
-int Xcode_enbase32_race( const UCHAR8* input,
-                        const size_t input_size,
-                        UCHAR8* output,
-                        size_t* output_size );
-int Xcode_debase32_race( const UCHAR8* input,
-                        const size_t input_size,
-                        UCHAR8* output,
-                        size_t* output_size );
+
+/* Hex definitions */
+
+#define ZERO                    0x00
+#define DOUBLE_F                0xFF
+#define DOUBLE_9                0x99
+#define NO_COMPRESSION_FLAG     0xD8
+#define HYPHEN                  0x002D
 
 
 /********************************************************************************
@@ -83,7 +73,7 @@ int Xcode_race_RaceCompress( const UTF16CHAR *  uncompressed,
   U1 = ZERO;
   compress_flag = 1;
 
-  for (i=0; i<uncompressed_size; i++) 
+  for (i=0; i<(int)uncompressed_size; i++)
   {
     tmp16 = myhtons(*(uncompressed+i));  /* htons ensures [msb,lsb] */
 
@@ -108,7 +98,7 @@ int Xcode_race_RaceCompress( const UTF16CHAR *  uncompressed,
 
     *(compressed+compressed_offset++) = U1;
 
-    for (i=0; i<uncompressed_size; i++) 
+    for (i=0; i<(int)uncompressed_size; i++)
     {
       tmp16 = myhtons(*(uncompressed+i));  /* htons ensures [msb,lsb] */
 
@@ -139,7 +129,7 @@ int Xcode_race_RaceCompress( const UTF16CHAR *  uncompressed,
 
   } else {
     *(compressed+compressed_offset++) = NO_COMPRESSION_FLAG;
-    for (i=0; i<uncompressed_size; i++) 
+    for (i=0; i<(int)uncompressed_size; i++)
     {
       tmp16 = myhtons(*(uncompressed+i));  /* htons ensures [msb,lsb] */
       U2 = tmp8[0];
@@ -198,7 +188,7 @@ int Xcode_race_RaceDecompress( const UCHAR8* compressed,
     alt_U1 = ZERO;
     alt_compress_flag = 1;
 
-    for (i=1; i<compressed_size; i+=2) 
+    for (i=1; i<(int)compressed_size; i+=2)
     {
       if (*(compressed+i) != ZERO) 
       {
@@ -216,7 +206,7 @@ int Xcode_race_RaceDecompress( const UCHAR8* compressed,
     if (alt_compress_flag) {return XCODE_DERACE_IMPROPER_NULL_COMPRESSION;}
 
     i = 1;
-    while (i<compressed_size) 
+    while (i<(int)compressed_size)
     {
       U1 = *(compressed+i++);
       N1 = *(compressed+i++);
@@ -230,12 +220,12 @@ int Xcode_race_RaceDecompress( const UCHAR8* compressed,
       }
 
       if (offset == *decompressed_size) {return XCODE_BUFFER_OVERFLOW_ERROR;}
-      *(decompressed+offset++) = (U1<<8)+N1;
+      *(decompressed+offset++) = (UTF16CHAR)((U1<<8)+N1);
     }
 
   } else {
 
-    for (i=1; i<compressed_size; i++) 
+    for (i=1; i<(int)compressed_size; i++)
     {
       N1 = *(compressed+i);
 
@@ -259,7 +249,7 @@ int Xcode_race_RaceDecompress( const UCHAR8* compressed,
           unescaped_octet_flag = 1;
 
           if (offset == *decompressed_size) {return XCODE_BUFFER_OVERFLOW_ERROR;}
-          *(decompressed+offset++) = (U1<<8)+N1;
+          *(decompressed+offset++) = (UTF16CHAR)((U1<<8)+N1);
         }
       } else {
 
@@ -270,7 +260,7 @@ int Xcode_race_RaceDecompress( const UCHAR8* compressed,
           invalid_dns_flag = 1;
 
           if (offset == *decompressed_size) {return XCODE_BUFFER_OVERFLOW_ERROR;}
-          *(decompressed+offset++) = (U1<<8)+DOUBLE_F;
+          *(decompressed+offset++) = (UTF16CHAR)((U1<<8)+DOUBLE_F);
         } else {
           if (U1 == ZERO) {return XCODE_DERACE_UNNEEDED_ESCAPE_PRESENT;}
           if (N1 == LABEL_DELIMITER) {return XCODE_DERACE_INTERNAL_DELIMITER_PRESENT;}
@@ -303,6 +293,18 @@ int Xcode_race_RaceDecompress( const UCHAR8* compressed,
  *                              Base32                                          *
  ********************************************************************************/
 
+/* Prototypes */
+
+UCHAR8 Xcode_enmap32_race(const UCHAR8 input);
+UCHAR8 Xcode_demap32_race(const UCHAR8 input);
+int Xcode_enbase32_race( const UCHAR8* input,
+                        const size_t input_size,
+                        UCHAR8* output,
+                        size_t* output_size );
+int Xcode_debase32_race( const UCHAR8* input,
+                        const size_t input_size,
+                        UCHAR8* output,
+                        size_t* output_size );
 
 /*
  * Xcode_enmap32_race - Map 5 bit chunk to dns friendly octet
@@ -355,7 +357,7 @@ int Xcode_enbase32_race( const UCHAR8* input,
     {
       octet = octet >> (3+delta_size);
     } else {
-      octet = octet << octet_size;
+      octet = (UCHAR8)(octet << octet_size);
       octet = octet >> 3;
     }
 
@@ -437,14 +439,14 @@ int Xcode_debase32_race( const UCHAR8* input,
     if ((pentet = Xcode_demap32_race(*(input+input_offset))) == DOUBLE_F)
       {return XCODE_DEBASE32_INVALID_ACE_CHARACTERS;}
 
-    shift = 3-delta_size+pentet_size;
+    shift = (short)(3-delta_size+pentet_size);
 
     if (shift < 0) {
       pentet = pentet >> (shift*-1);
       delta_size += 5+shift;
       pentet_size += 5+shift;
     } else {
-      pentet = pentet << shift;
+      pentet = (UCHAR8)(pentet << shift);
       delta_size += (5-pentet_size);
       pentet_size += (5-pentet_size);
     }
@@ -520,9 +522,9 @@ int Xcode_race_encodeString( const UTF16CHAR *  unicode,
 
   if (invalid_dns_flag) 
   {
-    for(i=0; i<race_prefix_size; i++) 
+    for(i=0; i<(int)race_prefix_size; i++)
     {
-      if (i == *race_size) {return XCODE_BUFFER_OVERFLOW_ERROR;}
+      if (i == (int)*race_size) {return XCODE_BUFFER_OVERFLOW_ERROR;}
       *(race+i) = *(race_prefix+i);
     }
 
@@ -580,7 +582,7 @@ int Xcode_race_decodeString( UCHAR8 *       race,
 
   } else {
 
-    for (i=0; i<race_size; i++) 
+    for (i=0; i<(int)race_size; i++)
     {
       if (*(race+i) == LABEL_DELIMITER) {return XCODE_DERACE_INTERNAL_DELIMITER_PRESENT;}
     }
