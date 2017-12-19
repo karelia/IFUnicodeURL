@@ -61,7 +61,7 @@ absence of 0..2C, 2E..2F, 3A..40, 5B..60, and 7B..7F.
 
 int is_ldh_character32(const DWORD c)
 {
-	if ( c <= 0x002C ||
+	if ( ( c <= 0x002C ) ||
 		( c == 0x002E || c == 0x002F ) ||
 		( c >= 0x003A && c <= 0x0040 ) ||
 		( c >= 0x005B && c <= 0x0060 ) ||
@@ -400,14 +400,14 @@ A more detailed algorithm and formulae can be found in [FSS_UTF],
 int Xcode_convertUTF16ToUTF8( const UTF16CHAR * puzInput, int iInputLength,
 UCHAR8 * pszResult, int * piResultLength )
 {
-	size_t input_offset = 0;
-	size_t output_offset = 0;
+	int input_offset = 0;
+	int output_offset = 0;
 	UTF16CHAR uchar, high = 0x0000;
 	UCHAR8 temp, u;
 
 	if (iInputLength < 1) {return XCODE_BAD_ARGUMENT_ERROR;}
 
-	while (input_offset < iInputLength)
+	while ((int)input_offset < iInputLength)
 	{
 		uchar = *(puzInput+input_offset++);
 
@@ -420,9 +420,9 @@ UCHAR8 * pszResult, int * piResultLength )
 				u = ((high & 0x03c0) >> 6) + 1;
 				temp = 0xf0 | (u >> 2);
 				*(pszResult+output_offset++) = temp;
-				temp = 0x80 | ((u & 0x03) << 4) | ((high & 0x003c) >> 2);
+				temp = 0x80 | (UCHAR8)((u & 0x03) << 4) | (UCHAR8)((high & 0x003c) >> 2);
 				*(pszResult+output_offset++) = temp;
-				temp = 0x80 | ((high & 0x0003) << 4) | ((uchar & 0x03c0) >> 6);
+				temp = 0x80 | (UCHAR8)((high & 0x0003) << 4) | (UCHAR8)((uchar & 0x03c0) >> 6);
 				*(pszResult+output_offset++) = temp;
 				temp = 0x80 | (uchar & 0x003f);
 				*(pszResult+output_offset++) = temp;
@@ -479,7 +479,7 @@ UCHAR8 * pszResult, int * piResultLength )
 
 	if (high) {return XCODE_UTIL_LONELY_HIGH_SURROGATE;}
 
-	*piResultLength = (int)output_offset;
+	*piResultLength = output_offset;
 
 	return XCODE_SUCCESS;
 }
@@ -507,8 +507,8 @@ int Xcode_convertUTF8ToUTF16( const UCHAR8 *    pszInput,
 	UTF16CHAR *       puzResult,
 int *             piResultLength )
 {
-	size_t input_offset = 0;
-	size_t output_offset = 0;
+	int input_offset = 0;
+	int output_offset = 0;
 	UCHAR8 o1,o2,o3,o4,u;
 	UTF16CHAR temp;
 
@@ -535,7 +535,7 @@ int *             piResultLength )
 			o2 = *(pszInput+input_offset++);
 			if (o2 < 0x80 || o2 > 0xbf) {return XCODE_UTIL_INVALID_BYTE_ORDER;}
 
-			temp = ((o1 & 0x1f) << 6) | (o2 & 0x3f);
+			temp = (UTF16CHAR)((o1 & 0x1f) << 6) | (o2 & 0x3f);
 			if (temp < 0x0080) {return XCODE_UTIL_INVALID_CONVERTED_VALUE;}
 
 			*(puzResult+output_offset++) = temp;
@@ -553,7 +553,7 @@ int *             piResultLength )
 			o3 = *(pszInput+input_offset++);
 			if (o3 < 0x80 || o3 > 0xbf) {return XCODE_UTIL_INVALID_BYTE_ORDER;}
 
-			temp = ((o1 & 0x0f) << 12) | ((o2 & 0x3f) << 6) | (o3 & 0x3f);
+			temp = (UTF16CHAR)((o1 & 0x0f) << 12) | (UTF16CHAR)((o2 & 0x3f) << 6) | (o3 & 0x3f);
 			if (temp < 0x0800) {return XCODE_UTIL_INVALID_CONVERTED_VALUE;}
 
 			/*
@@ -589,13 +589,13 @@ int *             piResultLength )
 			o4 = *(pszInput+input_offset++);
 			if (o4 < 0x80 || o4 > 0xbf) {return XCODE_UTIL_INVALID_BYTE_ORDER;}
 
-			u = ((o1 & 0x07) << 2) | ((o2 & 0x30) >> 4);
+			u = (UCHAR8)((o1 & 0x07) << 2) | (UCHAR8)((o2 & 0x30) >> 4);
 			if (u > 0x10 || u == 0x00) {return XCODE_UTIL_INVALID_U_VALUE;}
 
-			temp = 0xd800 | ((u-1) << 6) | ((o2 & 0x0f) << 2) | ((o3 & 0x30) >> 4);
+			temp = 0xd800 | (UTF16CHAR)((u-1) << 6) | (UTF16CHAR)((o2 & 0x0f) << 2) | (UTF16CHAR)((o3 & 0x30) >> 4);
 			*(puzResult+output_offset++) = temp;
 
-			temp = 0xdc00 | ((o3 & 0x0f) << 6) | (o4 & 0x3f);
+			temp = 0xdc00 | (UTF16CHAR)((o3 & 0x0f) << 6) | (o4 & 0x3f);
 			*(puzResult+output_offset++) = temp;
 
 			continue;
@@ -604,7 +604,7 @@ int *             piResultLength )
 		return XCODE_UTIL_INVALID_8BIT_INPUT;
 	}
 
-	*piResultLength = (int)output_offset;
+	*piResultLength = output_offset;
 
 	return XCODE_SUCCESS;
 }
@@ -617,7 +617,7 @@ void lower_case(UCHAR8* string, const size_t string_size)
 {
 	int i;
 	UCHAR8 o;
-	for (i=0; i<string_size; i++) {
+	for (i=0; i<(int)string_size; i++) {
 		o = *(string+i);
 		if (o >= 0x41 && o <= 0x5A) {*(string+i) += 0x20;}
 	}
@@ -636,7 +636,7 @@ XcodeBoolean starts_with_ignore_case(const UCHAR8* string, const size_t string_s
 
 	if (string_size < prefix_size) {return XCODE_FALSE;}
 
-	for (i=0; i<prefix_size; i++)
+	for (i=0; i<(int)prefix_size; i++)
 	{
 		case_offset = 0x00;
 		string_octet = *(string+i);
@@ -657,7 +657,7 @@ XcodeBoolean starts_with(const UCHAR8* string, const size_t string_size, const U
 {
 	int i;
 	if (string_size < prefix_size) {return XCODE_FALSE;}
-	for (i=0; i<prefix_size; i++) {
+	for (i=0; i<(int)prefix_size; i++) {
 		if ( *(string+i) != *(prefix+i) ) {return XCODE_FALSE;}
 	}
 	return XCODE_TRUE;
@@ -671,8 +671,8 @@ XcodeBoolean starts_with(const UCHAR8* string, const size_t string_size, const U
 int shrink_UChar_to_Octet(const UTF16CHAR* unicode, const size_t unicode_size, UCHAR8* ace, size_t* ace_size)
 {
 	int i;
-	for (i=0; i<unicode_size; i++) {
-		if (i == *ace_size) {return XCODE_BUFFER_OVERFLOW_ERROR;}
+	for (i=0; i<(int)unicode_size; i++) {
+		if ((UCHAR8)i == *ace_size) {return XCODE_BUFFER_OVERFLOW_ERROR;}
 		*(ace+i) = (UCHAR8 )*(unicode+i);
 	}
 	*ace_size = unicode_size;
@@ -687,8 +687,8 @@ int shrink_UChar_to_Octet(const UTF16CHAR* unicode, const size_t unicode_size, U
 int expand_Octet_to_UChar(const UCHAR8* ace, const size_t ace_size, UTF16CHAR* unicode, size_t* unicode_size)
 {
 	int i;
-	for (i=0; i<ace_size; i++) {
-		if (i == *unicode_size) {return XCODE_BUFFER_OVERFLOW_ERROR;}
+	for (i=0; i<(int)ace_size; i++) {
+		if ((UTF16CHAR)i == *unicode_size) {return XCODE_BUFFER_OVERFLOW_ERROR;}
 		*(unicode+i) = (UTF16CHAR)*(ace+i);
 	}
 	*unicode_size = ace_size;

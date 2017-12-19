@@ -73,9 +73,9 @@ static const int SCount = 11172;  /* LCount * NCount */
 static void insert( DWORD * target, size_t * length, size_t offset, DWORD ch ) 
 {
   int i;
-  if (offset > *length) {return;}
+  if ((int)offset < 0 || offset > *length) {return;}
 
-  for (i=(int)(*length); i>offset; i--) {target[i] = target[i-1];}
+  for (i=(int)(*length); i>(int)offset; i--) {target[i] = target[i-1];}
 
   target[offset] = ch;
 
@@ -160,11 +160,11 @@ static int composeHangul( DWORD dwLastCh, DWORD ch, DWORD * pdwOut )
 
   /* 1. check to see if two current characters are L and V */
 
-  LIndex = (int)(dwLastCh - LBase);
+  LIndex = (int)dwLastCh - LBase;
 
   if ( 0 <= LIndex && LIndex < LCount ) 
   {
-    int VIndex = (int)(ch - VBase);
+    int VIndex = (int)ch - VBase;
     if ( 0 <= VIndex && VIndex < VCount ) 
     {
 
@@ -177,11 +177,11 @@ static int composeHangul( DWORD dwLastCh, DWORD ch, DWORD * pdwOut )
 
   /* 2. check to see if two current characters are LV and T */
 
-  SIndex = (int)(dwLastCh - SBase);
+  SIndex = (int)dwLastCh - SBase;
 
   if ( 0 <= SIndex && SIndex < SCount && (SIndex % TCount) == 0 ) 
   {
-    int TIndex = (int)(ch - TBase);
+    int TIndex = (int)ch - TBase;
     if (0 <= TIndex && TIndex <= TCount) 
     {
 
@@ -212,7 +212,7 @@ static int composeHangul( DWORD dwLastCh, DWORD ch, DWORD * pdwOut )
 
 static int decomposeHangul( DWORD ch, DWORD * pdwOut ) 
 {
-  int SIndex = (int)(ch - SBase);
+  int SIndex = (int)ch - SBase;
   int L;
   int V;
   int T;
@@ -361,7 +361,7 @@ static int doKCDecompose( const DWORD * input, int input_size,
     }
   }
   
-  if (output_offset > *output_size) {return XCODE_NAMEPREP_BUFFER_OVERFLOW_ERROR;}
+  if ((int)output_offset > *output_size) {return XCODE_NAMEPREP_BUFFER_OVERFLOW_ERROR;}
   
   *output_size = (int)output_offset;
   
@@ -481,8 +481,10 @@ int Xcode_normalizeString( DWORD *  pdwInputString, int iInputSize,
 {
   int return_code;
   int i;
-  DWORD dwzTemp[256] = { 0 };
+  DWORD dwzTemp[256];
   int iTempSize = 256;
+
+  memset( dwzTemp, 0, sizeof( dwzTemp ) );
 
   if ( iInputSize < 1 ) return XCODE_NAMEPREP_BAD_ARGUMENT_ERROR;
 
@@ -591,18 +593,19 @@ int Xcode_prohibitString( DWORD * pdwInputString, int iInputSize,
                           DWORD * pdwProhibitedChar ) 
 {
   int i;
+	
   for ( i = 0; i <= iInputSize; i++ )
   {
+	DWORD c = *(pdwInputString+i);
     /* outside the unicode range check */
-    if ( *(pdwInputString+i) > 0x10FFFF ) return XCODE_NAMEPREP_OUTOFRANGEERROR;
+    if ( c > 0x10FFFF ) return XCODE_NAMEPREP_OUTOFRANGEERROR;
     /* prohibit unicode list */
-    if ( lookup_prohbited( *(pdwInputString+i) ) )
+    if ( lookup_prohbited( c ) )
     {
-      *pdwProhibitedChar = *(pdwInputString+i);
+      *pdwProhibitedChar = c;
       return XCODE_NAMEPREP_PROHIBITEDCHAR;
     }
   }
-
   return XCODE_SUCCESS;
 }
 
@@ -758,25 +761,20 @@ int Xcode_nameprepString( const UTF16CHAR * puInputString, int iInputSize,
   /* Input character string is UTF16, each character is 16 bits, type UTF16CHAR */
 
   return_code = Xcode_convertUTF16To32Bit( puInputString, iInputSize, dwTemp, &iTempSize );
-
   if ( return_code != XCODE_SUCCESS ) {return return_code;}
 
   return_code = Xcode_charmapString( dwTemp, iTempSize, dwMapped, &iMappedSize );
-
   if ( return_code != XCODE_SUCCESS ) {return return_code;}
 
   return_code = Xcode_normalizeString( dwMapped, iMappedSize, pdwOutputString, piOutputSize );
-
   if ( return_code != XCODE_SUCCESS ) {return return_code;}
 
   return_code = Xcode_prohibitString( pdwOutputString, *piOutputSize, pdwProhibitedChar );
-
   if ( return_code != XCODE_SUCCESS ) {return return_code;}
 
   return_code = Xcode_bidifilterString( pdwOutputString, *piOutputSize );
-
   if ( return_code != XCODE_SUCCESS ) {return return_code;}
-      
+	
   return XCODE_SUCCESS;
 }
 
